@@ -21,6 +21,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 
 
@@ -36,6 +37,54 @@ public class HanziToPinyin {
     private static HanziToPinyin sInstance;
     private Transliterator mPinyinTransliterator;
     private Transliterator mAsciiTransliterator;
+
+    private static final HashMap<String, String> POLYPHONES = new HashMap<>();
+    static {
+        POLYPHONES.put("夏", "XIA");
+        POLYPHONES.put("瞿", "QU");
+        POLYPHONES.put("曾", "ZENG");
+        POLYPHONES.put("石", "SHI");
+        POLYPHONES.put("解", "XIE");
+        POLYPHONES.put("藏", "ZANG");
+        POLYPHONES.put("翟", "ZHAI");
+        POLYPHONES.put("都", "DU");
+        POLYPHONES.put("六", "LU");
+        POLYPHONES.put("薄", "BO");
+        POLYPHONES.put("贾", "JIA");
+        POLYPHONES.put("居", "JU");
+        POLYPHONES.put("查", "ZHA");
+        POLYPHONES.put("盛", "SHENG");
+        POLYPHONES.put("塔", "TA");
+        POLYPHONES.put("和", "HE");
+        POLYPHONES.put("蓝", "LAN");
+        POLYPHONES.put("殷", "YIN");
+        POLYPHONES.put("乾", "QIAN");
+        POLYPHONES.put("陆", "LU");
+        POLYPHONES.put("乜", "NIE");
+        POLYPHONES.put("阚", "KAN");
+        POLYPHONES.put("叶", "YE");
+        POLYPHONES.put("强", "QIANG");
+        POLYPHONES.put("汤", "TANG");
+        POLYPHONES.put("万", "WAN");
+        POLYPHONES.put("沈", "SHEN");
+        POLYPHONES.put("仇", "QIU");
+        POLYPHONES.put("南", "NAN");
+        POLYPHONES.put("单", "SHAN");
+        POLYPHONES.put("卜", "BU");
+        POLYPHONES.put("鸟", "NIAO");
+        POLYPHONES.put("思", "SI");
+        POLYPHONES.put("寻", "XUN");
+        POLYPHONES.put("於", "YU");
+        POLYPHONES.put("余", "YU");
+        POLYPHONES.put("浅", "QIAN");
+        POLYPHONES.put("浣", "WAN");
+        POLYPHONES.put("无", "WU");
+        POLYPHONES.put("信", "XIN");
+        POLYPHONES.put("許", "XU");
+        POLYPHONES.put("齐", "QI");
+        POLYPHONES.put("俞", "YU");
+        POLYPHONES.put("若", "RUO");
+    }
 
     public static class Token {
         /**
@@ -95,7 +144,16 @@ public class HanziToPinyin {
         }
     }
 
-    private void tokenize(char character, Token token) {
+    /**
+     * Check if the first name is multi-pinyin
+     *
+     * @return right pinyin for this first name
+     */
+    private static String getMPinyin(final String firstName) {
+        return POLYPHONES.get(firstName);
+    }
+
+    private void tokenize(char character, Token token, boolean isFirstName) {
         token.source = Character.toString(character);
 
         // ASCII
@@ -114,6 +172,14 @@ public class HanziToPinyin {
         }
 
         token.type = Token.PINYIN;
+
+        if (isFirstName) {
+            token.target = getMPinyin(Character.toString(character));
+            if (token.target != null) {
+                return;
+            }
+        }
+
         token.target = mPinyinTransliterator.transliterate(token.source);
         if (TextUtils.isEmpty(token.target) ||
             TextUtils.equals(token.source, token.target)) {
@@ -145,6 +211,7 @@ public class HanziToPinyin {
         final StringBuilder sb = new StringBuilder();
         int tokenType = Token.LATIN;
         Token token = new Token();
+        boolean firstname;
 
         // Go through the input, create a new token when
         // a. Token type changed
@@ -157,7 +224,7 @@ public class HanziToPinyin {
                     addToken(sb, tokens, tokenType);
                 }
             } else {
-                tokenize(character, token);
+                tokenize(character, token, i == 0);
                 if (token.type == Token.PINYIN) {
                     if (sb.length() > 0) {
                         addToken(sb, tokens, tokenType);
